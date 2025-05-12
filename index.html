@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kine AI - HD in Foto</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(to right, #1a1a2e, #16213e);
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    h1 {
+      margin-top: 40px;
+      font-size: 2.5rem;
+      color: #00ffff;
+      animation: fadeInDown 1s ease-in-out;
+    }
+
+    .uploader {
+      margin: 30px 20px;
+      background-color: #0f3460;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      width: 90%;
+      max-width: 500px;
+      text-align: center;
+      animation: fadeInUp 1s ease-in-out;
+    }
+
+    input[type="file"] {
+      margin: 15px 0;
+      padding: 10px;
+      background-color: #00ffff;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 12px 25px;
+      background-color: #00ff88;
+      border: none;
+      border-radius: 8px;
+      color: #000;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #00cc66;
+    }
+
+    .loading {
+      display: none;
+      margin-top: 20px;
+      font-size: 1.2rem;
+      animation: pulse 1.5s infinite;
+    }
+
+    .preview, .result, .error-message {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    img {
+      max-width: 100%;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
+
+    .error-message {
+      color: #ff6b6b;
+      font-weight: bold;
+      animation: fadeInUp 0.5s ease-in-out;
+    }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Kine AI - HD in Foto</h1>
+
+  <div class="uploader">
+    <p>Pilih foto untuk di-HD-kan:</p>
+    <input type="file" id="imageInput" accept="image/*">
+    <br>
+    <button onclick="hdkanFoto()">Proses HD</button>
+    <div class="loading" id="loading">⏳ Sedang memproses gambar...</div>
+
+    <div class="preview" id="previewContainer"></div>
+    <div class="result" id="resultContainer"></div>
+    <div class="error-message" id="errorMessage"></div>
+  </div>
+
+  <script>
+    async function hdkanFoto() {
+      const input = document.getElementById("imageInput");
+      const loading = document.getElementById("loading");
+      const previewContainer = document.getElementById("previewContainer");
+      const resultContainer = document.getElementById("resultContainer");
+      const errorMessage = document.getElementById("errorMessage");
+
+      resultContainer.innerHTML = "";
+      previewContainer.innerHTML = "";
+      errorMessage.innerHTML = "";
+      
+      if (!input.files[0]) {
+        alert("Silakan pilih gambar terlebih dahulu!");
+        return;
+      }
+
+      const file = input.files[0];
+      const formData = new FormData();
+      formData.append("image", file);
+
+      // Tampilkan gambar preview
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        previewContainer.innerHTML = `<p>Foto Awal:</p><img src="${e.target.result}" alt="Preview">`;
+      };
+      reader.readAsDataURL(file);
+
+      loading.style.display = "block";
+
+      try {
+        // Upload ke ImgBB sementara
+        const uploadResponse = await fetch("https://api.imgbb.com/1/upload?key=1e1e7e4a8f6f2a50802ad7e0b03a8a9d", {
+          method: "POST",
+          body: formData
+        });
+        const uploadData = await uploadResponse.json();
+        const uploadedImageUrl = uploadData.data.url;
+
+        const apiUrl = `https://api.alyachan.dev/api/remini?image=${encodeURIComponent(uploadedImageUrl)}&apikey=franki12`;
+        const hdResponse = await fetch(apiUrl);
+        const hdData = await hdResponse.json();
+
+        loading.style.display = "none";
+
+        if (hdData.status && hdData.result && hdData.result.url) {
+          resultContainer.innerHTML = `
+            <p>Hasil HD:</p>
+            <img src="${hdData.result.url}" alt="HD Image">
+            <br><br>
+            <a href="${hdData.result.url}" download="hasil_hd.jpg">
+              <button>Download Hasil HD</button>
+            </a>
+          `;
+        } else {
+          errorMessage.innerText = "❌ Gagal memproses gambar. Silakan coba lagi.";
+        }
+
+      } catch (error) {
+        loading.style.display = "none";
+        console.error("Error:", error);
+        errorMessage.innerText = "❌ Terjadi kesalahan saat memproses. Coba lagi nanti.";
+      }
+    }
+  </script>
+
+</body>
+</html>
